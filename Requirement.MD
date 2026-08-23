@@ -1,4 +1,4 @@
-# Requirements Document – v1
+# Requirements Document – v2
 **ACME Employee Salary Management System**
 
 ## 1. Goal
@@ -26,20 +26,6 @@ Responsible for maintaining accurate employee salary records and answering compe
 - Edit an existing employee salary record.
 - Soft-delete (Deactivate) an employee.
 
-**Data Model (Core Fields):**
-- Employee ID
-- Full Name
-- Email
-- Department
-- Job Title
-- Job Level
-- Country
-- Currency
-- Annual Salary
-- Status (Active/Inactive)
-- Date of Joining
-- Last Updated (system managed)
-
 ### B. Analytics & Insights
 Provide a curated set of insights so the HR Manager can understand compensation patterns:
 
@@ -61,7 +47,54 @@ Support CSV export of the current filtered/aggregated view.
 
 ---
 
-## 4. Out of Scope (Deliberately Excluded)
+## 4. Data Model
+
+We are intentionally using a **single `employees` table** with controlled string values instead of full normalization.
+
+**Reason:**  
+Full normalization (separate tables for Department, Job Level, Country, etc.) would add unnecessary complexity for the current scope (CRUD + basic analytics). A single table with strictly controlled values keeps the system simple, queries fast, and development focused, while still maintaining good data consistency through application-level validation.
+
+### Table: `employees`
+
+| Column              | Type                  | Constraints / Notes                                      | Required |
+|---------------------|-----------------------|----------------------------------------------------------|----------|
+| `id`                | UUID / BigSerial      | Primary Key                                              | Yes     |
+| `employee_id`       | VARCHAR(50)           | Unique business identifier (e.g. ACME-10001)             | Yes     |
+| `full_name`         | VARCHAR(150)          |                                                          | Yes     |
+| `email`             | VARCHAR(150)          | Unique                                                   | Yes     |
+| `department`        | VARCHAR(100)          | Controlled list                                          | Yes     |
+| `job_title`         | VARCHAR(150)          |                                                          | Yes     |
+| `job_level`         | VARCHAR(50)           | Controlled list                                          | Yes     |
+| `country`           | VARCHAR(100)          | Controlled list                                          | Yes     |
+| `currency`          | CHAR(3)               | ISO currency code                                        | Yes     |
+| `annual_salary`     | DECIMAL(12,2)         | Must be > 0                                              | Yes     |
+| `status`            | VARCHAR(20)           | `Active` or `Inactive`                                   | Yes     |
+| `date_of_joining`   | DATE                  |                                                          | Yes     |
+| `created_at`        | TIMESTAMP             | Auto-set on create                                       | Yes     |
+| `updated_at`        | TIMESTAMP             | Auto-updated on change                                   | Yes     |
+
+### Controlled Values
+
+**Departments:**  
+Engineering, Product, Design, Marketing, Sales, Human Resources, Finance, Operations, Customer Success, Legal
+
+**Job Levels:**  
+L1, L2, L3, L4, L5, Manager, Senior Manager, Director, VP
+
+**Countries:**  
+India, United States, United Kingdom, Germany, Singapore, Australia, Canada, Netherlands, UAE, Japan
+
+**Currencies:**  
+INR, USD, EUR, GBP, SGD, AUD, CAD, AED, JPY
+
+### Indexes
+- Unique index on `employee_id`
+- Unique index on `email`
+- Index on `country`, `department`, `job_level`, `status`, `annual_salary`
+
+---
+
+## 5. Out of Scope (Deliberately Excluded)
 
 | Item                                      | Reason for Exclusion                                      |
 |-------------------------------------------|-----------------------------------------------------------|
@@ -74,10 +107,11 @@ Support CSV export of the current filtered/aggregated view.
 | Role-based access control (multiple HR roles) | Single primary persona                                |
 | Historical trend analysis (YoY)           | No historical data model in current scope                 |
 | Pay equity / diversity analysis           | Sensitive and beyond current requirements                 |
+| Fully normalized lookup tables            | Intentionally avoided to prevent over-engineering         |
 
 ---
 
-## 5. Non-Functional Expectations
+## 6. Non-Functional Expectations
 - Support 10,000 employee records comfortably.
 - Clean, responsive UI suitable for daily HR use.
 - Fast filtering, searching, and pagination.
@@ -85,5 +119,5 @@ Support CSV export of the current filtered/aggregated view.
 
 ---
 
-**Document Status:** v1  
-**Next Step:** Review and refine Analytics depth + final data model decisions before implementation.
+**Document Status:** v2  
+**Last Updated:** Data model finalized (single table approach)
