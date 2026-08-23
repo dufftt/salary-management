@@ -1,4 +1,4 @@
-# Requirements Document – v2
+# Requirements Document – v3
 **ACME Employee Salary Management System**
 
 ## 1. Goal
@@ -52,7 +52,7 @@ Support CSV export of the current filtered/aggregated view.
 We are intentionally using a **single `employees` table** with controlled string values instead of full normalization.
 
 **Reason:**  
-Full normalization (separate tables for Department, Job Level, Country, etc.) would add unnecessary complexity for the current scope (CRUD + basic analytics). A single table with strictly controlled values keeps the system simple, queries fast, and development focused, while still maintaining good data consistency through application-level validation.
+Full normalization would add unnecessary complexity for the current scope (CRUD + basic analytics). A single table with strictly controlled values keeps the system simple, queries fast, and development focused, while still maintaining good data consistency through application-level validation.
 
 ### Table: `employees`
 
@@ -94,7 +94,66 @@ INR, USD, EUR, GBP, SGD, AUD, CAD, AED, JPY
 
 ---
 
-## 5. Out of Scope (Deliberately Excluded)
+## 5. Validation Rules
+
+All validation will be enforced on the backend. Frontend will mirror the same rules for better user experience.
+
+| Field              | Validation Rules                                                                 |
+|--------------------|----------------------------------------------------------------------------------|
+| `employee_id`      | Required, Unique, 3–50 characters, alphanumeric + hyphen only                    |
+| `full_name`        | Required, 2–150 characters, trimmed                                              |
+| `email`            | Required, Valid email format, Unique, Max 150 characters                         |
+| `department`       | Required, Must be one of the controlled values                                   |
+| `job_title`        | Required, 2–150 characters                                                       |
+| `job_level`        | Required, Must be one of the controlled values                                   |
+| `country`          | Required, Must be one of the controlled values                                   |
+| `currency`         | Required, Must be one of the controlled values                                   |
+| `annual_salary`    | Required, Greater than 0, Maximum 50,000,000                                     |
+| `status`           | Required, Only `Active` or `Inactive`                                            |
+| `date_of_joining`  | Required, Valid date, Cannot be more than 1 year in the future                   |
+
+**Additional Rules:**
+- All string inputs must be trimmed.
+- `employee_id` should not be editable after creation.
+- Controlled values are case-sensitive and must match exactly.
+
+---
+
+## 6. Migration & Seeding Strategy
+
+### Schema Migration
+- All database schema changes will be managed through versioned migration scripts.
+- Tool: **Flyway** (recommended with Spring Boot)
+- No manual changes to the database schema are allowed.
+- Initial migration will create the `employees` table along with all indexes and constraints.
+
+### Data Seeding
+- A dedicated seed script/command will generate **10,000 realistic employee records**.
+- Seeding is separate from schema migrations.
+- Seed data will:
+  - Respect all controlled values
+  - Create realistic distribution across countries, departments, and job levels
+  - Make salary ranges correlate reasonably with Job Level and Country
+  - Ensure good variety so that analytics charts are meaningful
+
+---
+
+## 7. Tech Stack
+
+| Layer          | Technology                          | Notes |
+|----------------|-------------------------------------|-------|
+| Backend        | Java + Spring Boot                  | REST API |
+| ORM            | Spring Data JPA                     | |
+| Validation     | Jakarta Bean Validation             | |
+| Database       | PostgreSQL (primary) / SQLite       | SQLite acceptable for simplicity |
+| Migration      | Flyway                              | |
+| Frontend       | Angular                             | |
+| UI Library     | Angular Material                    | |
+| Charts         | Chart.js or ng2-charts              | For analytics |
+
+---
+
+## 8. Out of Scope (Deliberately Excluded)
 
 | Item                                      | Reason for Exclusion                                      |
 |-------------------------------------------|-----------------------------------------------------------|
@@ -111,13 +170,14 @@ INR, USD, EUR, GBP, SGD, AUD, CAD, AED, JPY
 
 ---
 
-## 6. Non-Functional Expectations
+## 9. Non-Functional Expectations
 - Support 10,000 employee records comfortably.
 - Clean, responsive UI suitable for daily HR use.
 - Fast filtering, searching, and pagination.
 - Production-quality code with meaningful unit tests for core logic.
+- Incremental commits that show the evolution of the solution.
 
 ---
 
-**Document Status:** v2  
-**Last Updated:** Data model finalized (single table approach)
+**Document Status:** v3  
+**Last Updated:** Validation rules, migration strategy, and Tech Stack (Java + Angular) added
