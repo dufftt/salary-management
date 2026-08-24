@@ -1,4 +1,4 @@
-# Requirements Document – v4
+# Requirements Document – v5
 **ACME Employee Salary Management System**
 
 ## 1. Goal
@@ -58,7 +58,7 @@ We are using a **single `employees` table** with controlled string/enum values.
 
 | Column                | Type                  | Constraints / Notes                                      | Required |
 |-----------------------|-----------------------|----------------------------------------------------------|----------|
-| `id`                  | UUID / BigSerial      | Primary Key                                              | Yes     |
+| `id`                  | UUID / TEXT           | Primary Key                                              | Yes     |
 | `employee_id`         | VARCHAR(50)           | Unique business identifier                               | Yes     |
 | `full_name`           | VARCHAR(150)          |                                                          | Yes     |
 | `email`               | VARCHAR(150)          | Unique                                                   | Yes     |
@@ -67,8 +67,8 @@ We are using a **single `employees` table** with controlled string/enum values.
 | `job_level`           | VARCHAR(50)           | Controlled list / Enum                                   | Yes     |
 | `country`             | VARCHAR(100)          | Controlled list / Enum                                   | Yes     |
 | `currency`            | CHAR(3)               | Original currency                                        | Yes     |
-| `annual_salary`       | DECIMAL(12,2)         | Original salary                                          | Yes     |
-| `annual_salary_usd`   | DECIMAL(12,2)         | Normalized salary for analytics                          | Yes     |
+| `annual_salary`       | NUMERIC(12,2)         | Original salary                                          | Yes     |
+| `annual_salary_usd`   | NUMERIC(12,2)         | Normalized salary for analytics                          | Yes     |
 | `status`              | VARCHAR(20)           | `Active` or `Inactive`                                   | Yes     |
 | `date_of_joining`     | DATE                  |                                                          | Yes     |
 | `created_at`          | TIMESTAMP             | Auto-set on create                                       | Yes     |
@@ -84,13 +84,17 @@ We are using a **single `employees` table** with controlled string/enum values.
 
 ### Controlled Values
 
-**Departments:** Engineering, Product, Design, Marketing, Sales, Human Resources, Finance, Operations, Customer Success, Legal  
+**Departments:**  
+Engineering, Product, Design, Marketing, Sales, Human Resources, Finance, Operations, Customer Success, Legal  
 
-**Job Levels:** L1, L2, L3, L4, L5, Manager, Senior Manager, Director, VP  
+**Job Levels:**  
+L1, L2, L3, L4, L5, Manager, Senior Manager, Director, VP  
 
-**Countries:** India, United States, United Kingdom, Germany, Singapore, Australia, Canada, Netherlands, UAE, Japan  
+**Countries:**  
+India, United States, United Kingdom, Germany, Singapore, Australia, Canada, Netherlands, UAE, Japan  
 
-**Currencies:** INR, USD, EUR, GBP, SGD, AUD, CAD, AED, JPY
+**Currencies:**  
+INR, USD, EUR, GBP, SGD, AUD, CAD, AED, JPY
 
 ### Indexes
 - Unique: `employee_id`, `email`
@@ -138,7 +142,7 @@ We are using a **single `employees` table** with controlled string/enum values.
 | Backend        | Java + Spring Boot                  |
 | ORM            | Spring Data JPA                     |
 | Validation     | Jakarta Bean Validation             |
-| Database       | PostgreSQL (primary) / SQLite       |
+| Database       | SQLite                              |
 | Migration      | Flyway                              |
 | Mapping        | MapStruct                           |
 | Frontend       | Angular + Angular Material          |
@@ -159,10 +163,34 @@ Detailed architecture is documented separately in `architecture.md`.
 
 ---
 
-## 9. Out of Scope
+## 9. Key Design Decisions & Trade-offs
+
+### 9.1 Caching Decision
+
+**Decision:** Caching is **not** implemented in the current version.
+
+**Reasoning:**
+- The system only manages 10,000 employee records.
+- With proper database indexes and aggregations pushed to the database, query performance is already excellent.
+- Adding a caching layer (along with proper cache invalidation on Create/Update/Deactivate) would introduce additional complexity without meaningful performance benefits at this scale.
+- This decision follows the principle of avoiding over-engineering.
+
+**Future Consideration:**  
+A targeted cache (e.g. Caffeine) can be added later specifically for analytics endpoints if usage patterns or data volume justify it.
+
+### 9.2 Other Important Decisions
+- Single table design instead of full normalization → reduces complexity while maintaining data consistency through enums + validation.
+- Clean Layered Architecture instead of Hexagonal → appropriate for the current domain complexity.
+- Median calculation done in application memory (for SQLite compatibility) → acceptable for 10k records.
+- Analytics default to Active employees only.
+
+---
+
+## 10. Out of Scope
 
 | Item                                      | Reason |
 |-------------------------------------------|--------|
+| Caching layer                             | Unnecessary complexity at current scale (see section 9.1) |
 | Employee self-service portal              | Only HR Manager persona |
 | Bulk Excel/CSV upload                     | Complexity |
 | Salary revision history                   | Not required |
@@ -175,18 +203,17 @@ Detailed architecture is documented separately in `architecture.md`.
 
 ---
 
-## 10. Non-Functional Expectations
+## 11. Non-Functional Expectations
 - Comfortably support 10,000 employee records
 - Fast filtering, searching, and pagination
 - All heavy aggregations performed in the database
 - Production-quality code with meaningful unit tests
 - Incremental commits that show evolution of the solution
+- Avoid over-engineering (caching, complex architectural patterns, etc.)
 
 ---
 
-**Document Status:** v4  
-**Key Changes in v4:**
-- Added `annual_salary_usd` (Approach B)
-- Locked analytics rules (Active by default + checkbox)
-- Locked aggregation strategy (Database)
-- Locked filtering approach (JPA Specifications + JPQL)
+**Document Status:** v5  
+**Key Changes in v5:**
+- Explicitly documented the decision of **not implementing caching** along with clear reasoning.
+- Added dedicated "Key Design Decisions & Trade-offs" section.
