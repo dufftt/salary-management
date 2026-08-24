@@ -1,4 +1,4 @@
-# Requirements Document – v3
+# Requirements Document – v4
 **ACME Employee Salary Management System**
 
 ## 1. Goal
@@ -27,157 +27,166 @@ Responsible for maintaining accurate employee salary records and answering compe
 - Soft-delete (Deactivate) an employee.
 
 ### B. Analytics & Insights
-Provide a curated set of insights so the HR Manager can understand compensation patterns:
+Provide a curated set of insights so the HR Manager can understand compensation patterns.
 
 **Summary Metrics (KPI Cards):**
 - Total Headcount
-- Total Annual Payroll Cost
-- Average Annual Salary
-- Median Annual Salary
-- Salary Range (Min – Max)
+- Total Annual Payroll Cost (in USD)
+- Average Annual Salary (in USD)
+- Median Annual Salary (in USD)
+- Salary Range (Min – Max in USD)
 
 **Key Breakdowns:**
 - Average Annual Salary by Country
 - Average Annual Salary by Department
 - Average Annual Salary by Job Level
-- Salary Distribution (using salary bands)
+- Salary Distribution (using salary bands in USD)
 
-All metrics and charts will respect the applied filters (Country, Department, Job Level, Status).  
-Support CSV export of the current filtered/aggregated view.
+**Rules:**
+- By default, analytics only include **Active** employees.
+- A checkbox “Include Inactive employees” will be available (unchecked by default).
+- All aggregations are performed in the database.
+- All analytics calculations use the normalized `annual_salary_usd` field.
 
 ---
 
 ## 4. Data Model
 
-We are intentionally using a **single `employees` table** with controlled string values instead of full normalization.
-
-**Reason:**  
-Full normalization would add unnecessary complexity for the current scope (CRUD + basic analytics). A single table with strictly controlled values keeps the system simple, queries fast, and development focused, while still maintaining good data consistency through application-level validation.
+We are using a **single `employees` table** with controlled string/enum values.
 
 ### Table: `employees`
 
-| Column              | Type                  | Constraints / Notes                                      | Required |
-|---------------------|-----------------------|----------------------------------------------------------|----------|
-| `id`                | UUID / BigSerial      | Primary Key                                              | Yes     |
-| `employee_id`       | VARCHAR(50)           | Unique business identifier (e.g. ACME-10001)             | Yes     |
-| `full_name`         | VARCHAR(150)          |                                                          | Yes     |
-| `email`             | VARCHAR(150)          | Unique                                                   | Yes     |
-| `department`        | VARCHAR(100)          | Controlled list                                          | Yes     |
-| `job_title`         | VARCHAR(150)          |                                                          | Yes     |
-| `job_level`         | VARCHAR(50)           | Controlled list                                          | Yes     |
-| `country`           | VARCHAR(100)          | Controlled list                                          | Yes     |
-| `currency`          | CHAR(3)               | ISO currency code                                        | Yes     |
-| `annual_salary`     | DECIMAL(12,2)         | Must be > 0                                              | Yes     |
-| `status`            | VARCHAR(20)           | `Active` or `Inactive`                                   | Yes     |
-| `date_of_joining`   | DATE                  |                                                          | Yes     |
-| `created_at`        | TIMESTAMP             | Auto-set on create                                       | Yes     |
-| `updated_at`        | TIMESTAMP             | Auto-updated on change                                   | Yes     |
+| Column                | Type                  | Constraints / Notes                                      | Required |
+|-----------------------|-----------------------|----------------------------------------------------------|----------|
+| `id`                  | UUID / BigSerial      | Primary Key                                              | Yes     |
+| `employee_id`         | VARCHAR(50)           | Unique business identifier                               | Yes     |
+| `full_name`           | VARCHAR(150)          |                                                          | Yes     |
+| `email`               | VARCHAR(150)          | Unique                                                   | Yes     |
+| `department`          | VARCHAR(100)          | Controlled list / Enum                                   | Yes     |
+| `job_title`           | VARCHAR(150)          |                                                          | Yes     |
+| `job_level`           | VARCHAR(50)           | Controlled list / Enum                                   | Yes     |
+| `country`             | VARCHAR(100)          | Controlled list / Enum                                   | Yes     |
+| `currency`            | CHAR(3)               | Original currency                                        | Yes     |
+| `annual_salary`       | DECIMAL(12,2)         | Original salary                                          | Yes     |
+| `annual_salary_usd`   | DECIMAL(12,2)         | Normalized salary for analytics                          | Yes     |
+| `status`              | VARCHAR(20)           | `Active` or `Inactive`                                   | Yes     |
+| `date_of_joining`     | DATE                  |                                                          | Yes     |
+| `created_at`          | TIMESTAMP             | Auto-set on create                                       | Yes     |
+| `updated_at`          | TIMESTAMP             | Auto-updated on change                                   | Yes     |
+
+### Multi-Currency Handling (Approach B)
+
+- We store both the **original salary** (`annual_salary` + `currency`) and a normalized value (`annual_salary_usd`).
+- Conversion to USD happens **only on Create and Update**.
+- List page and Detail page always show the **original salary + currency**.
+- All analytics use `annual_salary_usd`.
+- Conversion rates are maintained as a static map for the prototype.
 
 ### Controlled Values
 
-**Departments:**  
-Engineering, Product, Design, Marketing, Sales, Human Resources, Finance, Operations, Customer Success, Legal
+**Departments:** Engineering, Product, Design, Marketing, Sales, Human Resources, Finance, Operations, Customer Success, Legal  
 
-**Job Levels:**  
-L1, L2, L3, L4, L5, Manager, Senior Manager, Director, VP
+**Job Levels:** L1, L2, L3, L4, L5, Manager, Senior Manager, Director, VP  
 
-**Countries:**  
-India, United States, United Kingdom, Germany, Singapore, Australia, Canada, Netherlands, UAE, Japan
+**Countries:** India, United States, United Kingdom, Germany, Singapore, Australia, Canada, Netherlands, UAE, Japan  
 
-**Currencies:**  
-INR, USD, EUR, GBP, SGD, AUD, CAD, AED, JPY
+**Currencies:** INR, USD, EUR, GBP, SGD, AUD, CAD, AED, JPY
 
 ### Indexes
-- Unique index on `employee_id`
-- Unique index on `email`
-- Index on `country`, `department`, `job_level`, `status`, `annual_salary`
+- Unique: `employee_id`, `email`
+- Index: `country`, `department`, `job_level`, `status`, `annual_salary`, `annual_salary_usd`
 
 ---
 
 ## 5. Validation Rules
 
-All validation will be enforced on the backend. Frontend will mirror the same rules for better user experience.
-
 | Field              | Validation Rules                                                                 |
 |--------------------|----------------------------------------------------------------------------------|
-| `employee_id`      | Required, Unique, 3–50 characters, alphanumeric + hyphen only                    |
-| `full_name`        | Required, 2–150 characters, trimmed                                              |
-| `email`            | Required, Valid email format, Unique, Max 150 characters                         |
+| `employee_id`      | Required, Unique, 3–50 characters, alphanumeric + hyphen                         |
+| `full_name`        | Required, 2–150 characters                                                       |
+| `email`            | Required, Valid email, Unique                                                    |
 | `department`       | Required, Must be one of the controlled values                                   |
 | `job_title`        | Required, 2–150 characters                                                       |
 | `job_level`        | Required, Must be one of the controlled values                                   |
 | `country`          | Required, Must be one of the controlled values                                   |
 | `currency`         | Required, Must be one of the controlled values                                   |
-| `annual_salary`    | Required, Greater than 0, Maximum 50,000,000                                     |
+| `annual_salary`    | Required, > 0, Maximum 50,000,000                                                |
 | `status`           | Required, Only `Active` or `Inactive`                                            |
-| `date_of_joining`  | Required, Valid date, Cannot be more than 1 year in the future                   |
+| `date_of_joining`  | Required, Cannot be more than 1 year in the future                               |
 
-**Additional Rules:**
-- All string inputs must be trimmed.
-- `employee_id` should not be editable after creation.
-- Controlled values are case-sensitive and must match exactly.
+- `annual_salary_usd` is **calculated** on the server (not accepted from client).
+- `employee_id` is not editable after creation.
 
 ---
 
 ## 6. Migration & Seeding Strategy
 
-### Schema Migration
-- All database schema changes will be managed through versioned migration scripts.
-- Tool: **Flyway** (recommended with Spring Boot)
-- No manual changes to the database schema are allowed.
-- Initial migration will create the `employees` table along with all indexes and constraints.
-
-### Data Seeding
-- A dedicated seed script/command will generate **10,000 realistic employee records**.
-- Seeding is separate from schema migrations.
+- Schema changes managed via **Flyway**.
+- Dedicated seed script will create **10,000 realistic employees**.
 - Seed data will:
-  - Respect all controlled values
+  - Respect controlled values
   - Create realistic distribution across countries, departments, and job levels
-  - Make salary ranges correlate reasonably with Job Level and Country
-  - Ensure good variety so that analytics charts are meaningful
+  - Calculate `annual_salary_usd` during seeding
+  - Make salary somewhat correlated with Job Level and Country
 
 ---
 
 ## 7. Tech Stack
 
-| Layer          | Technology                          | Notes |
-|----------------|-------------------------------------|-------|
-| Backend        | Java + Spring Boot                  | REST API |
-| ORM            | Spring Data JPA                     | |
-| Validation     | Jakarta Bean Validation             | |
-| Database       | PostgreSQL (primary) / SQLite       | SQLite acceptable for simplicity |
-| Migration      | Flyway                              | |
-| Frontend       | Angular                             | |
-| UI Library     | Angular Material                    | |
-| Charts         | Chart.js or ng2-charts              | For analytics |
+| Layer          | Technology                          |
+|----------------|-------------------------------------|
+| Backend        | Java + Spring Boot                  |
+| ORM            | Spring Data JPA                     |
+| Validation     | Jakarta Bean Validation             |
+| Database       | PostgreSQL (primary) / SQLite       |
+| Migration      | Flyway                              |
+| Mapping        | MapStruct                           |
+| Frontend       | Angular + Angular Material          |
+| Charts         | Chart.js / ng2-charts               |
 
 ---
 
-## 8. Out of Scope (Deliberately Excluded)
+## 8. Architecture
 
-| Item                                      | Reason for Exclusion                                      |
-|-------------------------------------------|-----------------------------------------------------------|
-| Employee self-service portal              | Primary persona is HR Manager only                        |
-| Bulk Excel/CSV upload                     | Adds complexity; can be added later if needed             |
-| Salary revision history / versioning      | Not required for core management + insights               |
-| Approval workflows                        | Out of scope for this assessment                          |
-| Multi-currency conversion engine          | Store salary in original currency; no live conversion     |
-| Advanced self-service BI / custom chart builder | High complexity with limited incremental value     |
-| Role-based access control (multiple HR roles) | Single primary persona                                |
-| Historical trend analysis (YoY)           | No historical data model in current scope                 |
-| Pay equity / diversity analysis           | Sensitive and beyond current requirements                 |
-| Fully normalized lookup tables            | Intentionally avoided to prevent over-engineering         |
+We are using **Clean Layered Architecture**:
+
+- Controller → Service → Repository
+- Entities are never exposed (DTOs are used)
+- JPA Specifications for dynamic filtering
+- Some manual JPQL where it provides better clarity or performance
+
+Detailed architecture is documented separately in `architecture.md`.
 
 ---
 
-## 9. Non-Functional Expectations
-- Support 10,000 employee records comfortably.
-- Clean, responsive UI suitable for daily HR use.
-- Fast filtering, searching, and pagination.
-- Production-quality code with meaningful unit tests for core logic.
-- Incremental commits that show the evolution of the solution.
+## 9. Out of Scope
+
+| Item                                      | Reason |
+|-------------------------------------------|--------|
+| Employee self-service portal              | Only HR Manager persona |
+| Bulk Excel/CSV upload                     | Complexity |
+| Salary revision history                   | Not required |
+| Approval workflows                        | Out of scope |
+| Live exchange rate API                    | Static rates are sufficient |
+| Fully flexible self-service BI            | Over-engineering |
+| Role-based access control                 | Single persona |
+| Fully normalized lookup tables            | Intentionally avoided |
+| Hexagonal / Ports & Adapters              | Unnecessary complexity for this scope |
 
 ---
 
-**Document Status:** v3  
-**Last Updated:** Validation rules, migration strategy, and Tech Stack (Java + Angular) added
+## 10. Non-Functional Expectations
+- Comfortably support 10,000 employee records
+- Fast filtering, searching, and pagination
+- All heavy aggregations performed in the database
+- Production-quality code with meaningful unit tests
+- Incremental commits that show evolution of the solution
+
+---
+
+**Document Status:** v4  
+**Key Changes in v4:**
+- Added `annual_salary_usd` (Approach B)
+- Locked analytics rules (Active by default + checkbox)
+- Locked aggregation strategy (Database)
+- Locked filtering approach (JPA Specifications + JPQL)
