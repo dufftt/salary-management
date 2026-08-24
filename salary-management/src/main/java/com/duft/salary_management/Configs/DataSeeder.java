@@ -3,22 +3,28 @@ package com.duft.salary_management.Configs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.duft.salary_management.Entity.Employee;
 import com.duft.salary_management.Enums.Country;
 import com.duft.salary_management.Enums.Currency;
 import com.duft.salary_management.Enums.Department;
 import com.duft.salary_management.Enums.EmployeeStatus;
 import com.duft.salary_management.Enums.JobLevel;
-import com.duft.salary_management.Repository.EmployeeRepository;
 import com.duft.salary_management.Utility.CurrencyConverter;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Component
@@ -27,37 +33,88 @@ public class DataSeeder implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
     private static final int TOTAL_EMPLOYEES = 10_000;
 
-    private final EmployeeRepository employeeRepository;
+    private final JdbcTemplate jdbcTemplate;
     private final Random random = new Random();
 
-    public DataSeeder(EmployeeRepository employeeRepository) {
-        this.employeeRepository = employeeRepository;
+    public DataSeeder(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
+
+    private record SeedEmployee(
+            UUID id,
+            String employeeId,
+            String fullName,
+            String email,
+            Department department,
+            String jobTitle,
+            JobLevel jobLevel,
+            Country country,
+            Currency currency,
+            BigDecimal annualSalary,
+            BigDecimal annualSalaryUsd,
+            EmployeeStatus status,
+            LocalDate dateOfJoining
+    ) {}
 
     @Override
     @Transactional
     public void run(String... args) {
-        long count = employeeRepository.count();
-        if (count > 0) {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM employees", Integer.class);
+        if (count != null && count > 0) {
             log.info("Database already contains {} employees. Skipping seeding.", count);
             return;
         }
 
-        log.info("Starting to seed {} employees...", TOTAL_EMPLOYEES);
+        log.info("Starting ultra-fast batch seeding for {} employees...", TOTAL_EMPLOYEES);
+        long startTime = System.currentTimeMillis();
 
+        List<SeedEmployee> employees = new ArrayList<>(TOTAL_EMPLOYEES);
         for (int i = 1; i <= TOTAL_EMPLOYEES; i++) {
-            Employee employee = generateEmployee(i);
-            employeeRepository.save(employee);
-
-            if (i % 1000 == 0) {
-                log.info("Seeded {} employees...", i);
-            }
+            employees.add(generateEmployee(i));
         }
 
-        log.info("Successfully seeded {} employees.", TOTAL_EMPLOYEES);
+        String sql = """
+            INSERT INTO employees (
+                id, employee_id, full_name, email, department, job_title, job_level,
+                country, currency, annual_salary, annual_salary_usd, status,
+                date_of_joining, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
+
+        Instant now = Instant.now();
+
+        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                SeedEmployee emp = employees.get(i);
+                ps.setString(1, emp.id.toString());
+                ps.setString(2, emp.employeeId);
+                ps.setString(3, emp.fullName);
+                ps.setString(4, emp.email);
+                ps.setString(5, emp.department.name());
+                ps.setString(6, emp.jobTitle);
+                ps.setString(7, emp.jobLevel.name());
+                ps.setString(8, emp.country.name());
+                ps.setString(9, emp.currency.name());
+                ps.setBigDecimal(10, emp.annualSalary);
+                ps.setBigDecimal(11, emp.annualSalaryUsd);
+                ps.setString(12, emp.status.name());
+                ps.setDate(13, java.sql.Date.valueOf(emp.dateOfJoining));
+                ps.setTimestamp(14, java.sql.Timestamp.from(now));
+                ps.setTimestamp(15, java.sql.Timestamp.from(now));
+            }
+
+            @Override
+            public int getBatchSize() {
+                return employees.size();
+            }
+        });
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info("Successfully seeded {} employees in {} ms.", TOTAL_EMPLOYEES, duration);
     }
 
-    private Employee generateEmployee(int sequence) {
+    private SeedEmployee generateEmployee(int sequence) {
         Country country = randomCountry();
         Currency currency = currencyForCountry(country);
         JobLevel jobLevel = randomJobLevel();
@@ -70,21 +127,21 @@ public class DataSeeder implements CommandLineRunner {
         String fullName = generateName();
         String email = generateEmail(fullName, sequence);
 
-        Employee employee = new Employee();
-        employee.setEmployeeId(employeeId);
-        employee.setFullName(fullName);
-        employee.setEmail(email);
-        employee.setDepartment(department);
-        employee.setJobTitle(generateJobTitle(jobLevel, department));
-        employee.setJobLevel(jobLevel);
-        employee.setCountry(country);
-        employee.setCurrency(currency);
-        employee.setAnnualSalary(annualSalary);
-        employee.setAnnualSalaryUsd(annualSalaryUsd);
-        employee.setStatus(random.nextDouble() < 0.92 ? EmployeeStatus.ACTIVE : EmployeeStatus.INACTIVE); // ~8% inactive
-        employee.setDateOfJoining(randomJoiningDate());
-
-        return employee;
+        return new SeedEmployee(
+                UUID.randomUUID(),
+                employeeId,
+                fullName,
+                email,
+                department,
+                generateJobTitle(jobLevel, department),
+                jobLevel,
+                country,
+                currency,
+                annualSalary,
+                annualSalaryUsd,
+                random.nextDouble() < 0.92 ? EmployeeStatus.ACTIVE : EmployeeStatus.INACTIVE,
+                randomJoiningDate()
+        );
     }
 
     // ==================== Helper Methods ====================

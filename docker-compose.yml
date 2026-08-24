@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ./salary-management
+      dockerfile: Dockerfile
+    container_name: acme-salary-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - backend_data:/app
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./salary-frontend
+      dockerfile: Dockerfile
+    container_name: acme-salary-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_data:

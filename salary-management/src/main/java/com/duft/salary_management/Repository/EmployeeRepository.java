@@ -77,21 +77,29 @@ List<Object[]> getSummaryAggregates(@Param("status") EmployeeStatus status);
 
     // ==================== Salary Distribution ====================
 
-    @Query(value = """
+    @Query("""
         SELECT 
             CASE
-                WHEN annual_salary_usd < 30000 THEN '0 - 30k'
-                WHEN annual_salary_usd < 50000 THEN '30k - 50k'
-                WHEN annual_salary_usd < 80000 THEN '50k - 80k'
-                WHEN annual_salary_usd < 120000 THEN '80k - 120k'
-                WHEN annual_salary_usd < 200000 THEN '120k - 200k'
+                WHEN e.annualSalaryUsd < 30000 THEN '0 - 30k'
+                WHEN e.annualSalaryUsd < 50000 THEN '30k - 50k'
+                WHEN e.annualSalaryUsd < 80000 THEN '50k - 80k'
+                WHEN e.annualSalaryUsd < 120000 THEN '80k - 120k'
+                WHEN e.annualSalaryUsd < 200000 THEN '120k - 200k'
                 ELSE '200k+'
-            END AS band,
-            COUNT(*) as count
-        FROM employees
-        WHERE (:status IS NULL OR status = :#{#status?.name()})
-        GROUP BY band
-        ORDER BY MIN(annual_salary_usd)
-        """, nativeQuery = true)
+            END,
+            COUNT(e)
+        FROM Employee e
+        WHERE (:status IS NULL OR e.status = :status)
+        GROUP BY 
+            CASE
+                WHEN e.annualSalaryUsd < 30000 THEN '0 - 30k'
+                WHEN e.annualSalaryUsd < 50000 THEN '30k - 50k'
+                WHEN e.annualSalaryUsd < 80000 THEN '50k - 80k'
+                WHEN e.annualSalaryUsd < 120000 THEN '80k - 120k'
+                WHEN e.annualSalaryUsd < 200000 THEN '120k - 200k'
+                ELSE '200k+'
+            END
+        ORDER BY MIN(e.annualSalaryUsd) ASC
+        """)
     List<Object[]> getSalaryDistribution(@Param("status") EmployeeStatus status);
 }
