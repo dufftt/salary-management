@@ -1,0 +1,132 @@
+@if (employee) {
+  <div class="page-container">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="left">
+        <button mat-icon-button (click)="onBack()">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div>
+          <h1>{{ employee.fullName }}</h1>
+          <p class="subtitle">{{ employee.employeeId }} · {{ employee.email }}</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button mat-stroked-button (click)="onEdit()">
+          <mat-icon>edit</mat-icon>
+          Edit
+        </button>
+        <button mat-stroked-button
+                color="warn"
+                [disabled]="employee.status === 'INACTIVE'"
+                (click)="onDeactivate()">
+          <mat-icon>person_off</mat-icon>
+          Deactivate
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content-grid">
+
+      <!-- Main Info -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Employee Information</mat-card-title>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content class="info-grid">
+
+          <div class="info-item">
+            <span class="label">Status</span>
+            <span class="status-chip"
+                  [class.active]="employee.status === 'ACTIVE'"
+                  [class.inactive]="employee.status === 'INACTIVE'">
+              {{ employee.status }}
+            </span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Department</span>
+            <span class="value">{{ departmentLabels[employee.department] }}</span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Job Title</span>
+            <span class="value">{{ employee.jobTitle }}</span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Job Level</span>
+            <span class="value">{{ jobLevelLabels[employee.jobLevel] }}</span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Country</span>
+            <span class="value">{{ countryLabels[employee.country] }}</span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Date of Joining</span>
+            <span class="value">{{ formatDate(employee.dateOfJoining) }}</span>
+          </div>
+
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Compensation -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Compensation</mat-card-title>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content class="info-grid">
+
+          <div class="info-item">
+            <span class="label">Annual Salary</span>
+            <span class="value salary">
+              {{ formatSalary(employee.annualSalary, employee.currency) }}
+            </span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Currency</span>
+            <span class="value">{{ employee.currency }}</span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Salary (USD Equivalent)</span>
+            <span class="value">
+              {{ formatSalary(employee.annualSalaryUsd, 'USD') }}
+            </span>
+          </div>
+
+        </mat-card-content>
+      </mat-card>
+
+      <!-- System Info -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>System Information</mat-card-title>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content class="info-grid">
+
+          <div class="info-item">
+            <span class="label">Created At</span>
+            <span class="value">{{ formatDate(employee.createdAt) }}</span>
+          </div>
+
+          <div class="info-item">
+            <span class="label">Last Updated</span>
+            <span class="value">{{ formatDate(employee.updatedAt) }}</span>
+          </div>
+
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+  </div>
+}

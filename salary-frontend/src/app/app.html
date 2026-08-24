@@ -1,0 +1,32 @@
+@if (loadingService.loading$ | async) {
+  <mat-progress-bar mode="indeterminate" class="global-loading-bar"></mat-progress-bar>
+}
+
+<mat-sidenav-container class="app-container">
+
+  <!-- Sidebar -->
+  <mat-sidenav mode="side" opened class="sidebar">
+    <div class="sidebar-header">
+      <h2>ACME Salary</h2>
+      <p>HR Management</p>
+    </div>
+
+    <mat-nav-list>
+      <a mat-list-item routerLink="/employees" routerLinkActive="active-link">
+        <mat-icon matListItemIcon>people</mat-icon>
+        <span matListItemTitle>Employees</span>
+      </a>
+
+      <a mat-list-item routerLink="/analytics" routerLinkActive="active-link">
+        <mat-icon matListItemIcon>bar_chart</mat-icon>
+        <span matListItemTitle>Analytics</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <!-- Main Content -->
+  <mat-sidenav-content class="main-content">
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+
+</mat-sidenav-container>

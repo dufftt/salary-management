@@ -1,0 +1,6 @@
+target/
+salary.db*
+.git
+.gitignore
+.idea
+*.iml

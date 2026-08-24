@@ -1,0 +1,54 @@
+export enum Department {
+  ENGINEERING = 'ENGINEERING',
+  PRODUCT = 'PRODUCT',
+  DESIGN = 'DESIGN',
+  MARKETING = 'MARKETING',
+  SALES = 'SALES',
+  HUMAN_RESOURCES = 'HUMAN_RESOURCES',
+  FINANCE = 'FINANCE',
+  OPERATIONS = 'OPERATIONS',
+  CUSTOMER_SUCCESS = 'CUSTOMER_SUCCESS',
+  LEGAL = 'LEGAL'
+}
+
+export enum JobLevel {
+  L1 = 'L1',
+  L2 = 'L2',
+  L3 = 'L3',
+  L4 = 'L4',
+  L5 = 'L5',
+  MANAGER = 'MANAGER',
+  SENIOR_MANAGER = 'SENIOR_MANAGER',
+  DIRECTOR = 'DIRECTOR',
+  VP = 'VP'
+}
+
+export enum Country {
+  INDIA = 'INDIA',
+  UNITED_STATES = 'UNITED_STATES',
+  UNITED_KINGDOM = 'UNITED_KINGDOM',
+  GERMANY = 'GERMANY',
+  SINGAPORE = 'SINGAPORE',
+  AUSTRALIA = 'AUSTRALIA',
+  CANADA = 'CANADA',
+  NETHERLANDS = 'NETHERLANDS',
+  UAE = 'UAE',
+  JAPAN = 'JAPAN'
+}
+
+export enum Currency {
+  INR = 'INR',
+  USD = 'USD',
+  EUR = 'EUR',
+  GBP = 'GBP',
+  SGD = 'SGD',
+  AUD = 'AUD',
+  CAD = 'CAD',
+  AED = 'AED',
+  JPY = 'JPY'
+}
+
+export enum EmployeeStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE'
+}
