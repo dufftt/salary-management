@@ -9,6 +9,14 @@ A modern, production-ready web application designed for the **HR Manager persona
 
 ---
 
+## 🎬 Demo Video
+
+[![Watch the Demo Video](https://img.youtube.com/vi/dxac4fG4r4o/maxresdefault.jpg)](https://youtu.be/dxac4fG4r4o)
+
+▶️ **Watch the full walkthrough on YouTube:** [https://youtu.be/dxac4fG4r4o](https://youtu.be/dxac4fG4r4o)
+
+---
+
 ## 📌 Problem Statement & Product Framing
 
 - **User Persona:** HR Manager
