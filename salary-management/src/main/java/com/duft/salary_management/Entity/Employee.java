@@ -31,6 +31,7 @@ public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.VARCHAR)
     @Column(columnDefinition = "TEXT")
     private UUID id;
 

@@ -35,6 +35,13 @@ class SalaryManagementApplicationTests {
 		assertFalse(page.content().isEmpty());
 		assertNotNull(page.content().get(0).dateOfJoining());
 		assertNotNull(page.content().get(0).createdAt());
+
+		// Test finding the employee by ID
+		var firstEmployee = page.content().get(0);
+		var found = employeeService.getEmployeeById(firstEmployee.id());
+		assertNotNull(found);
+		org.junit.jupiter.api.Assertions.assertEquals(firstEmployee.id(), found.id());
+		org.junit.jupiter.api.Assertions.assertEquals(firstEmployee.employeeId(), found.employeeId());
 	}
 
 	@Test
